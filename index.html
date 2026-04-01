@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GLITCH — put it on</title>
+  <meta name="description" content="GLITCH is a terminal workspace that knows where you are and what you're building. Your GLITCH. Your terminal. Your rules.">
+  <style>
+    :root {
+      --bg: #282a36;
+      --fg: #f8f8f2;
+      --purple: #bd93f9;
+      --pink: #ff79c6;
+      --green: #50fa7b;
+      --cyan: #8be9fd;
+      --yellow: #f1fa8c;
+      --red: #ff5555;
+      --comment: #6272a4;
+      --selection: #44475a;
+      --dark: #1e1f29;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Menlo', 'Consolas', 'Courier New', monospace;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* CRT scanlines */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.07) 2px,
+        rgba(0,0,0,0.07) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* CRT vignette */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.65) 100%);
+      pointer-events: none;
+      z-index: 99;
+    }
+
+    .noise {
+      position: fixed;
+      inset: 0;
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: 98;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 120px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 860px;
+      padding: 2rem 2.5rem;
+      display: grid;
+      grid-template-rows: auto auto auto;
+      gap: 1.4rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── TITLE ── */
+    .title-block { text-align: left; }
+
+    .glitch-title {
+      font-size: clamp(4.5rem, 13vw, 9rem);
+      font-weight: 900;
+      color: var(--purple);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      position: relative;
+      display: inline-block;
+      text-transform: uppercase;
+      animation: glitch-main 5s infinite;
+      user-select: none;
+    }
+
+    .glitch-title::before,
+    .glitch-title::after {
+      content: 'GLITCH';
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      pointer-events: none;
+    }
+
+    .glitch-title::before {
+      color: var(--pink);
+      animation: glitch-before 5s infinite;
+      clip-path: polygon(0 15%, 100% 15%, 100% 40%, 0 40%);
+    }
+
+    .glitch-title::after {
+      color: var(--cyan);
+      animation: glitch-after 5s infinite;
+      clip-path: polygon(0 62%, 100% 62%, 100% 85%, 0 85%);
+    }
+
+    @keyframes glitch-main {
+      0%,88%,100% { transform: none; filter: none; }
+      89% { transform: skewX(-2deg) translateX(2px); }
+      90% { transform: skewX(2deg) translateX(-2px); filter: hue-rotate(10deg); }
+      91% { transform: none; filter: none; }
+      94% { transform: translateX(-1px); }
+      95% { transform: none; }
+    }
+
+    @keyframes glitch-before {
+      0%,88%,100% { transform: none; opacity: 0; }
+      89% { transform: translate(-4px, -1px); opacity: 1; }
+      90% { transform: translate(4px, 1px); opacity: 1; }
+      91% { opacity: 0; }
+    }
+
+    @keyframes glitch-after {
+      0%,88%,100% { transform: none; opacity: 0; }
+      89% { transform: translate(4px, 1px); opacity: 1; }
+      90% { transform: translate(-4px, -1px); opacity: 1; }
+      91% { opacity: 0; }
+    }
+
+    .tagline {
+      font-size: 0.85rem;
+      color: var(--comment);
+      margin-top: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .tagline em {
+      color: var(--yellow);
+      font-style: normal;
+    }
+
+    /* ── TERMINAL ── */
+    .terminal {
+      background: var(--dark);
+      border: 1px solid var(--selection);
+      box-shadow:
+        0 0 0 1px rgba(189,147,249,0.08),
+        0 0 40px rgba(189,147,249,0.08),
+        inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .terminal-bar {
+      background: var(--selection);
+      padding: 0.35rem 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      border-bottom: 1px solid rgba(0,0,0,0.3);
+    }
+
+    .dot { width: 9px; height: 9px; border-radius: 50%; opacity: 0.9; }
+    .dot.r { background: var(--red); }
+    .dot.y { background: var(--yellow); }
+    .dot.g { background: var(--green); }
+
+    .terminal-bar .tab {
+      margin-left: 0.8rem;
+      font-size: 0.68rem;
+      color: var(--comment);
+      letter-spacing: 0.05em;
+    }
+
+    .terminal-body {
+      padding: 0.9rem 1.1rem;
+      font-size: 0.8rem;
+      line-height: 1.75;
+    }
+
+    .line { display: block; white-space: pre; }
+    .p  { color: var(--green); }
+    .c  { color: var(--comment); }
+    .pu { color: var(--purple); }
+    .cy { color: var(--cyan); }
+    .pk { color: var(--pink); }
+    .ye { color: var(--yellow); }
+    .gr { color: var(--green); }
+    .fg { color: var(--fg); }
+
+    .cursor {
+      display: inline-block;
+      width: 0.52em;
+      height: 1em;
+      background: var(--purple);
+      vertical-align: text-bottom;
+      animation: blink 1.1s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50%     { opacity: 0; }
+    }
+
+    /* ── BOTTOM ROW ── */
+    .bottom-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 2rem;
+    }
+
+    .description {
+      font-size: 0.8rem;
+      color: var(--comment);
+      line-height: 1.75;
+      max-width: 500px;
+    }
+
+    .description strong { color: var(--fg); }
+
+    .cta-block {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .cta-btn {
+      display: inline-block;
+      background: transparent;
+      border: 1px solid var(--purple);
+      color: var(--purple);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.55rem 1.4rem;
+      letter-spacing: 0.12em;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+    }
+
+    .cta-btn:hover {
+      background: var(--purple);
+      color: var(--bg);
+      box-shadow: 0 0 20px rgba(189,147,249,0.35);
+    }
+
+    .cta-sub {
+      font-size: 0.65rem;
+      color: var(--comment);
+      letter-spacing: 0.1em;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="noise"></div>
+
+  <div class="container">
+
+    <div class="title-block">
+      <h1 class="glitch-title">GLITCH</h1>
+      <p class="tagline">put it on. <em>it's so bad.</em></p>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="dot r"></div>
+        <div class="dot y"></div>
+        <div class="dot g"></div>
+        <span class="tab">~/Projects/myapp — gl1tch</span>
+      </div>
+      <div class="terminal-body">
+        <span class="line"><span class="p">❯ </span><span class="fg">gl1tch</span></span>
+        <span class="line"><span class="c">  ╔════════════════════════════════════════════╗</span></span>
+        <span class="line"><span class="c">  ║  </span><span class="pu">G L I T C H</span><span class="c">  //  your terminal. your rules.  ║</span></span>
+        <span class="line"><span class="c">  ╚════════════════════════════════════════════╝</span></span>
+        <span class="line"> </span>
+        <span class="line"><span class="c">  </span><span class="cy">brain   </span><span class="c"> ↳ ~/Projects/myapp loaded  [</span><span class="gr">24 memories</span><span class="c">]</span></span>
+        <span class="line"><span class="c">  </span><span class="pk">glitch  </span><span class="c"> ↳ ready. what are we breaking today?</span></span>
+        <span class="line"><span class="c">  </span><span class="ye">apm     </span><span class="c"> ↳ 3 agents hot</span></span>
+        <span class="line"> </span>
+        <span class="line"><span class="p">❯ </span><span class="cursor"></span></span>
+      </div>
+    </div>
+
+    <div class="bottom-row">
+      <p class="description">
+        <strong>GLITCH</strong> is a terminal workspace that knows where you are
+        and what you're building. Not a chatbot. Not a copilot.<br>
+        AI memory, agent plugins, a BBS that never sleeps —
+        running inside your terminal, entirely <strong>yours</strong>.
+      </p>
+      <div class="cta-block">
+        <a class="cta-btn" href="https://github.com/powerglove-dev/gl1tch">get gl1tch →</a>
+        <span class="cta-sub">github.com/powerglove-dev/gl1tch</span>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
